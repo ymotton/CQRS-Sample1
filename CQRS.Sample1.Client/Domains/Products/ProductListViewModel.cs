@@ -38,8 +38,9 @@ namespace CQRS.Sample1.Client.Domains.Products
         public string SelectedProductName
         {
             get { return GetValue(() => SelectedProductDetail.Name); }
-            set { SetValue(() => SelectedProductDetail.Name, value); }
+            set { _selectedProductName = value; }
         }
+        private string _selectedProductName;
 
         public Action<string> SaveProductName
         {
@@ -48,7 +49,7 @@ namespace CQRS.Sample1.Client.Domains.Products
                 return
                     (value) =>
                         {
-                            if (value != null) ServiceBus.Send(new ProductRenaming(SelectedProductDetail.Id, SelectedProductDetail.Name));
+                            if (value != null) ServiceBus.Send(new ProductRenaming(SelectedProductDetail.Id, _selectedProductName));
                         };
             }
         }
