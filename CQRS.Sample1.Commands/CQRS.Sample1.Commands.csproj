@@ -34,17 +34,24 @@
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ProductCreation.cs" />
     <Compile Include="ProductListCommandHandlers.cs" />
     <Compile Include="ProductRenaming.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\CQRS.Sample1.Domain\CQRS.Sample1.Domain.csproj">
+      <Project>{8FB60E10-D9CA-49C9-9D8E-3CB3118FFC3D}</Project>
+      <Name>CQRS.Sample1.Domain</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\CQRS.Sample1.EventStore\CQRS.Sample1.EventStore.csproj">
+      <Project>{6B8DA6C0-36A3-4DD6-8EB5-63E315831868}</Project>
+      <Name>CQRS.Sample1.EventStore</Name>
+    </ProjectReference>
     <ProjectReference Include="..\CQRS.Sample1.Events\CQRS.Sample1.Events.csproj">
       <Project>{1B9EBE41-5A92-44FD-AB31-A76A9C4804D9}</Project>
       <Name>CQRS.Sample1.Events</Name>

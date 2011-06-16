@@ -14,7 +14,7 @@ namespace CQRS.Sample1.Client.Domains.Products
         ProductDto SelectedProduct { get; set; }
         ProductDetailDto SelectedProductDetail { get; }
     }
-    public class ProductListViewModel : ExtendedScreen, IProductListViewModel, Shared.IHandle<ProductRenamed>
+    public class ProductListViewModel : ExtendedScreen, IProductListViewModel, Shared.IHandle<ProductRenamed>, Shared.IHandle<ProductCreated>
     {
         #region Properties
 
@@ -64,7 +64,8 @@ namespace CQRS.Sample1.Client.Domains.Products
             Products = products;
             
             var serviceBus = IoCManager.Get<IServiceBus>();
-            serviceBus.SubscribeEventHandler(this);
+            serviceBus.SubscribeEventHandler<ProductRenamed>(this);
+            serviceBus.SubscribeEventHandler<ProductCreated>(this);
         }
 
         #endregion
@@ -88,6 +89,15 @@ namespace CQRS.Sample1.Client.Domains.Products
             {
                 SelectedProductDetail.Name = message.NewName;
                 NotifyOfPropertyChange(() => SelectedProductName);
+            }
+        }
+
+        public void Handle(ProductCreated message)
+        {
+            BindableCollection<ProductDto> products;
+            if (ReadOnlyStore.TryGet(out products))
+            {
+                Products = products;
             }
         }
 
