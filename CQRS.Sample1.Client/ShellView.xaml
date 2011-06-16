@@ -1,0 +1,9 @@
+﻿<Window x:Class="CQRS.Sample1.Client.ShellView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MainWindow" Height="350" Width="525">
+    <DockPanel>
+        <TextBlock DockPanel.Dock="Top" Text="Shell" FontSize="40" />
+        <ContentControl DockPanel.Dock="Bottom" x:Name="ActiveItem" />
+    </DockPanel>
+</Window>
