@@ -1,6 +1,6 @@
 ﻿namespace CQRS.Sample1.Shared
 {
-    public interface IServiceBus
+    public interface IServiceBus 
     {
         void SubscribeCommandHandler<T>(IHandle<T> handler) where T : Command;
         void SubscribeEventHandler<T>(IHandle<T> handler) where T : Event;

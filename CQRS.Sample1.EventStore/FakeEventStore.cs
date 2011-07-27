@@ -1,64 +1,39 @@
 ﻿using System;
-using System.Linq;
 using System.Collections.Generic;
 using CQRS.Sample1.Shared;
 
 namespace CQRS.Sample1.EventStore
 {
-    public class FakeEventStore : IEventStore
+    public class FakeEventStore : EventStoreBase
     {
-        private struct EventDescriptor
-        {
-            public readonly Guid Id;
-            public readonly Event Message;
-            public readonly int Version;
+        private readonly IDictionary<string, EventDescriptionCollection> _eventStore;
 
-            public EventDescriptor(Guid id, Event message, int version)
-            {
-                Id = id;
-                Message = message;
-                Version = version;
-            }
+        public FakeEventStore(IServiceBus serviceBus) : base(serviceBus)
+        {
+            _eventStore = new Dictionary<string, EventDescriptionCollection>();
         }
 
-        private readonly IServiceBus _serviceBus;
-        private readonly IDictionary<Guid, IList<EventDescriptor>> _eventStore;
-
-        public FakeEventStore(IServiceBus serviceBus)
+        protected override EventDescriptionCollection GetEventDescriptionCollection(Guid id)
         {
-            _serviceBus = serviceBus;
-            _eventStore = new Dictionary<Guid, IList<EventDescriptor>>();
+            EventDescriptionCollection collection;
+
+            if (!_eventStore.TryGetValue("EventDescriptionCollection/" + id, out collection))
+            {
+                return null;
+            }
+
+            return collection;
         }
 
-        public IEnumerable<Event> GetEventsForAggregate(Guid id)
+        private object _syncLock = new object();
+        protected override void PersistEventDescriptionCollection(EventDescriptionCollection collection)
         {
-            IList<EventDescriptor> eventDescriptors;
-            if (!_eventStore.TryGetValue(id, out eventDescriptors))
+            lock (_syncLock)
             {
-                throw new KeyNotFoundException("id");
-            }
-
-            return eventDescriptors.Select(ed => ed.Message);
-        }
-
-        public void SaveEvents(Guid id, IEnumerable<Event> events, int expectedVersion)
-        {
-            IList<EventDescriptor> eventDescriptors;
-            if (!_eventStore.TryGetValue(id, out eventDescriptors))
-            {
-                eventDescriptors = new List<EventDescriptor>();
-                _eventStore[id] = eventDescriptors;
-            }
-            else if (eventDescriptors.Any() && eventDescriptors.Last().Version != expectedVersion)
-            {
-                throw new ConcurrencyException();
-            }
-
-            foreach (var @event in events)
-            {
-                expectedVersion++;
-                eventDescriptors.Add(new EventDescriptor(id, @event, expectedVersion));
-                _serviceBus.Publish(@event);
+                if (!_eventStore.ContainsKey(collection.Id))
+                {
+                    _eventStore.Add(collection.Id, collection);
+                }
             }
         }
     }

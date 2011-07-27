@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Runtime.Serialization;
 
 namespace CQRS.Sample1.Shared
 {
     [Serializable]
+    [DataContract]
     public abstract class Command : Message
     {
-        protected Command() : this(Guid.NewGuid()) { }
-        protected Command(Guid id) : base(id) { }
+        protected Command(Guid id, int version) : base(id, version) { }
     }
 }

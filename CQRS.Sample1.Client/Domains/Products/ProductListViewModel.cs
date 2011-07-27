@@ -1,47 +1,52 @@
 ﻿using System;
 using System.Linq;
-using Caliburn.Micro;
 using CQRS.Sample1.Commands;
 using CQRS.Sample1.Events;
+using CQRS.Sample1.Process;
+using CQRS.Sample1.Process.Domains.Products;
 using CQRS.Sample1.Shared;
+using Newtonsoft.Json;
 
 namespace CQRS.Sample1.Client.Domains.Products
 {
-    public interface IProductListViewModel
-    {
-        BindableCollection<ProductDto> Products { get; set; }
-        ProductDetailDto GetProductDetails(Guid productId);
-        ProductDto SelectedProduct { get; set; }
-        ProductDetailDto SelectedProductDetail { get; }
-    }
-    public class ProductListViewModel : ExtendedScreen, IProductListViewModel, Shared.IHandle<ProductRenamed>, Shared.IHandle<ProductCreated>
+    public class ProductListViewModel : ExtendedScreen<ProductListModel>, IHandle<ProductRenamed>, IHandle<ProductCreated>
     {
         #region Properties
 
-        private ProductDto _selectedProduct;
+        private readonly ProductListModel _productListModel;
+        public DispatchedCollection<ProductDto> Products
+        {
+            get { return _productListModel.Products; }
+            set { _productListModel.Products = value; }
+        }
+        public DispatchedCollection<ProductDetailDto> ProductDetails
+        {
+            get { return _productListModel.ProductDetails; }
+            set { _productListModel.ProductDetails = value; }
+        }
+
         public ProductDto SelectedProduct
         {
-            get { return _selectedProduct; }
+            get { return GetValue(() => SelectedProduct); }
             set
             {
-                _selectedProduct = value;
-                NotifyOfPropertyChange(() => SelectedProduct);
+                SetValue(() => SelectedProduct, value);
                 NotifyOfPropertyChange(() => SelectedProductDetail);
                 NotifyOfPropertyChange(() => SelectedProductName);
             }
         }
-
         public ProductDetailDto SelectedProductDetail
         {
-            get { return SelectedProduct != null ? GetProductDetails(SelectedProduct.Id) : null; }
+            get { return SelectedProduct != null ? ProductDetails.FirstOrDefault(d => d.Id == SelectedProduct.Id) : null; }
         }
         public string SelectedProductName
         {
-            get { return GetValue(() => SelectedProductDetail.Name); }
+            get { return SelectedProductDetail != null ? SelectedProductDetail.Name : null; }
             set { _selectedProductName = value; }
         }
         private string _selectedProductName;
 
+        [JsonIgnore]
         public Action<string> SaveProductName
         {
             get
@@ -49,7 +54,7 @@ namespace CQRS.Sample1.Client.Domains.Products
                 return
                     (value) =>
                         {
-                            if (value != null) ServiceBus.Send(new ProductRenaming(SelectedProductDetail.Id, _selectedProductName));
+                            if (value != null) ServiceBus.Send(new ProductRenaming(SelectedProductDetail.Id, _selectedProductName, SelectedProductDetail.Version));
                         };
             }
         }
@@ -58,28 +63,16 @@ namespace CQRS.Sample1.Client.Domains.Products
 
         #region Ctors
 
-        public ProductListViewModel() : this(null){ }
-        public ProductListViewModel(BindableCollection<ProductDto> products)
+        public ProductListViewModel(ProductListModel model) : base(model)
         {
-            Products = products;
-            
+            _productListModel = model;
+
             var serviceBus = IoCManager.Get<IServiceBus>();
             serviceBus.SubscribeEventHandler<ProductRenamed>(this);
             serviceBus.SubscribeEventHandler<ProductCreated>(this);
         }
 
         #endregion
-
-        protected override void OnActivate()
-        {
-            base.OnActivate();
-
-            BindableCollection<ProductDto> products;
-            if (ReadOnlyStore.TryGet(out products))
-            {
-                Products = products;
-            }
-        }
 
         public void Handle(ProductRenamed message)
         {
@@ -88,33 +81,22 @@ namespace CQRS.Sample1.Client.Domains.Products
             if (SelectedProductDetail != null && SelectedProductDetail.Id == message.Id)
             {
                 SelectedProductDetail.Name = message.NewName;
+                SelectedProductDetail.Version = message.Version;
                 NotifyOfPropertyChange(() => SelectedProductName);
             }
-        }
 
+            ReadOnlyStore.Put(_productListModel);
+        }
         public void Handle(ProductCreated message)
         {
-            BindableCollection<ProductDto> products;
-            if (ReadOnlyStore.TryGet(out products))
-            {
-                Products = products;
-            }
+            Products.Add(new ProductDto(message.Id, message.Name));
+            ProductDetails.Add(new ProductDetailDto(message.Id, message.Name, 0, message.Version));
+
+            ReadOnlyStore.Put(_productListModel);
         }
-
-        #region IProductListViewModel Members
-
-        private BindableCollection<ProductDto> _products;
-        public BindableCollection<ProductDto> Products
+        public void AddProduct()
         {
-            get { return _products; }
-            set { _products = value; NotifyOfPropertyChange(() => Products); }
+            ServiceBus.Send(new ProductCreation(Guid.NewGuid(), "FooBar"));
         }
-
-        public ProductDetailDto GetProductDetails(Guid productId)
-        {
-            return ReadOnlyStore.GetWithId<ProductDetailDto>(productId);
-        }
-
-        #endregion
     }
 }

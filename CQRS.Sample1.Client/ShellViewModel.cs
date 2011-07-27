@@ -1,5 +1,8 @@
-﻿using System.Dynamic;
+﻿using System;
+using System.Dynamic;
+using System.Windows;
 using System.Windows.Controls.Primitives;
+using System.Windows.Interop;
 using Caliburn.Micro;
 using CQRS.Sample1.Client.Domains.Products;
 
@@ -11,7 +14,8 @@ namespace CQRS.Sample1.Client
         public ShellViewModel() //IWindowManager windowManager)
         {
             //this.windowManager = windowManager;
-            ActivateItem(new ProductListViewModel());
+
+            ActivateItem(IoC.GetInstance(typeof(ProductListViewModel), null));
         }
 
         public void OpenModeless()

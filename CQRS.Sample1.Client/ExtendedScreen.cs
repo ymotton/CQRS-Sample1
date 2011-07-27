@@ -1,72 +1,14 @@
-﻿using System;
-using System.Linq.Expressions;
-using System.Reflection;
-using Caliburn.Micro;
+﻿using CQRS.Sample1.Process;
+using CQRS.Sample1.Process.Domains;
 
 namespace CQRS.Sample1.Client
 {
-    public class ExtendedScreen : Screen
+    public abstract class ExtendedScreen<TModel> : NotifyPropertyChanged
+        where TModel : IModel
     {
-        protected TProperty GetValue<TProperty>(Expression<Func<TProperty>> propertyExpression)
+        protected ExtendedScreen(TModel model)
         {
-            var member = propertyExpression.Body as MemberExpression;
-            if (member != null)
-            {
-                object basePropertyValue;
-                if (member.Expression is MemberExpression)
-                {
-                    basePropertyValue = Expression.Lambda<Func<object>>(member.Expression, new ParameterExpression[0]).Compile()();
-                }
-                else
-                {
-                    basePropertyValue = propertyExpression.Compile()();
-                }
-
-                if (basePropertyValue != null)
-                {
-                    var propertyInfo = member.Member as PropertyInfo;
-                    if (propertyInfo != null) return (TProperty)propertyInfo.GetValue(basePropertyValue, new object[0]);
-
-                    var fieldInfo = member.Member as FieldInfo;
-                    if (fieldInfo != null) return (TProperty)fieldInfo.GetValue(basePropertyValue);
-                }
-                else
-                {
-                    return default(TProperty);
-                }
-            }
-
-            throw new ArgumentException("Only property or field type member expressions are supported.", "propertyExpression");
+            model.PropertyChanged += (o, e) => RaisePropertyChanged(e.PropertyName);
         }
-        protected void SetValue<TProperty>(Expression<Func<TProperty>> propertyExpression, TProperty value)
-        {
-            var member = propertyExpression.Body as MemberExpression;
-            if (member != null)
-            {
-                object basePropertyValue;
-                if (member.Expression is MemberExpression)
-                {
-                    basePropertyValue = Expression.Lambda<Func<object>>(member.Expression, new ParameterExpression[0]).Compile()();
-                }
-                else
-                {
-                    basePropertyValue = propertyExpression.Compile()();
-                }
-
-                if (basePropertyValue != null)
-                {
-                    var propertyInfo = member.Member as PropertyInfo;
-                    if (propertyInfo != null) propertyInfo.SetValue(basePropertyValue, value, new object[0]);
-
-                    var fieldInfo = member.Member as FieldInfo;
-                    if (fieldInfo != null) fieldInfo.SetValue(basePropertyValue, value);
-
-                    return;
-                }
-            }
-
-            throw new ArgumentException("Only property or field type member expressions are supported.", "propertyExpression");
-        }
-
     }
 }

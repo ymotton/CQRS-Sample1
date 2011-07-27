@@ -1,12 +1,12 @@
 ﻿using System;
+using System.Runtime.Serialization;
 
 namespace CQRS.Sample1.Shared
 {
     [Serializable]
+    [DataContract]
     public class Event : Message
     {
-        public int Version { get; set; }
-
-        public Event(Guid id) : base(id) { }
+        public Event(Guid id, int version) : base(id, version) { }
     }
 }

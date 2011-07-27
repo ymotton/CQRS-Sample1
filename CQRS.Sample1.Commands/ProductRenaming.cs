@@ -1,11 +1,14 @@
 ﻿using System;
+using System.Runtime.Serialization;
 using CQRS.Sample1.Shared;
 
 namespace CQRS.Sample1.Commands
 {
+    [DataContract]
+    [Serializable]
     public class ProductRenaming : Command
     {
-        private string _newName;
+        [DataMember]
         public string NewName
         {
             get { return _newName; }
@@ -17,8 +20,9 @@ namespace CQRS.Sample1.Commands
                 _newName = value;
             }
         }
+        private string _newName;
 
-        public ProductRenaming(Guid id, string newName) : base(id)
+        public ProductRenaming(Guid id, string newName, int version) : base(id, version)
         {
             NewName = newName;
         }

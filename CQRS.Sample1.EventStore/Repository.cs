@@ -18,7 +18,11 @@ namespace CQRS.Sample1.EventStore
         public T GetById(Guid id)
         {
             IEnumerable<Event> history = _eventStore.GetEventsForAggregate(id);
-            return (T)Activator.CreateInstance(typeof(T), history);
+            if (history == null)
+            {
+                return null;
+            }
+            return (T)Activator.CreateInstance(typeof(T), id, history);
         }
 
         public void Save(T instance)

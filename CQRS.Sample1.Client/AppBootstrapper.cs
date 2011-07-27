@@ -1,9 +1,10 @@
-﻿using Caliburn.Micro;
-using CQRS.Sample1.Client.Bus;
-using CQRS.Sample1.Client.Domains.Products;
+﻿using System;
+using System.Linq;
+using Caliburn.Micro;
 using CQRS.Sample1.Commands;
-using CQRS.Sample1.Events;
+using CQRS.Sample1.EventStore;
 using CQRS.Sample1.Shared;
+using CQRS.Sample1.Process;
 
 namespace CQRS.Sample1.Client
 {
@@ -13,22 +14,36 @@ namespace CQRS.Sample1.Client
         {
             var serviceBus = new FakeServiceBus();
             IoCManager.InjectInstance<IServiceBus>(serviceBus);
-            
+            IoCManager.InjectInstance<IRepository>(new RavenRepository());
+            IoCManager.InjectInstance<IEventStore>(new RavenEventStore(serviceBus));
+
             // Command handlers
             var productListCommandHandlers = new ProductListCommandHandlers();
             serviceBus.SubscribeCommandHandler<ProductRenaming>(productListCommandHandlers);
             serviceBus.SubscribeCommandHandler<ProductCreation>(productListCommandHandlers);
 
-            // Event handlers
-            var productListHandlers = new ProductListHandlers();
-            serviceBus.SubscribeEventHandler<ProductRenamed>(productListHandlers);
-            serviceBus.SubscribeEventHandler<ProductCreated>(productListHandlers);
+            DispatcherManager.Current = new WpfDispatcher();
         }
-        protected override object GetInstance(System.Type service, string key)
+
+        protected override object GetInstance(Type service, string key)
         {
-            if (service ==  typeof(IWindowManager))
+            if (service == typeof(IWindowManager))
             {
                 return new WindowManager();
+            }
+            Type baseType = service.BaseType;
+            if (baseType.IsGenericType && baseType.GetGenericTypeDefinition() == typeof(ExtendedScreen<>))
+            {
+                Type modelType = baseType.GetGenericArguments().First();
+                object instance = ReadOnlyStore.Get(modelType);
+                
+                if (instance == null)
+                {
+                    instance = base.GetInstance(modelType, key);
+                    ReadOnlyStore.Put(instance);
+                }
+
+                return Activator.CreateInstance(service, instance);
             }
 
             return base.GetInstance(service, key);

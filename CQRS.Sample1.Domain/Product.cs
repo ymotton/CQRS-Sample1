@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using CQRS.Sample1.Shared;
 using CQRS.Sample1.Events;
 
@@ -16,9 +17,20 @@ namespace CQRS.Sample1.Domain
         #region Ctors
 
         protected Product(Guid id) : base(id) { }
-        public Product(IEnumerable<Event> history) : base(history) { }
+        public Product(Guid id, IEnumerable<Event> history)
+            : base(
+                id,
+                history,
+                history.Any() ? history.Last().Version : 0)
+        { }
 
         #endregion
+
+        protected override void Initialize()
+        {
+            RegisterHandler((ProductCreated p) => Handle(p));
+            RegisterHandler((ProductRenamed p) => Handle(p));
+        }
         
         public static Product Create(Guid id, string name)
         {
@@ -28,7 +40,7 @@ namespace CQRS.Sample1.Domain
             }
 
             var product = new Product(id);
-            product.Apply(new ProductCreated(id, name));
+            product.Apply(new ProductCreated(id, -1, name));
             return product;
         }
         public void Rename(string newName)
@@ -37,8 +49,8 @@ namespace CQRS.Sample1.Domain
             {
                 throw new ArgumentException("Parameter 'newName' cannot be null, empty or whitespace. Fill out a meaningful name!");
             }
-
-            Apply(new ProductRenamed(Id, newName));
+            
+            Apply(new ProductRenamed(Id, -1, newName));
         }
 
         #region Event handlers

@@ -2,24 +2,39 @@
 {
     public static class ServiceBus
     {
+        #region Properties
+
+        private static IServiceBus Bus
+        {
+            get
+            {
+                if (_bus == null)
+                {
+                    _bus = IoCManager.Get<IServiceBus>();
+                }
+
+                return _bus;
+            }
+        }
+        private static IServiceBus _bus;
+
+        #endregion
+
         public static void SubscribeCommandHandler<T>(IHandle<T> handler) where T : Command
         {
-            IoCManager.Get<IServiceBus>().SubscribeCommandHandler(handler);
+            Bus.SubscribeCommandHandler(handler);
         }
-
         public static void SubscribeEventHandler<T>(IHandle<T> handler) where T : Event
         {
-            IoCManager.Get<IServiceBus>().SubscribeEventHandler(handler);
+            Bus.SubscribeEventHandler(handler);
         }
-
         public static void Send<T>(T command) where T : Command
         {
-            IoCManager.Get<IServiceBus>().Send(command);
+            Bus.Send(command);
         }
-
         public static void Publish<T>(T @event) where T : Event
         {
-            IoCManager.Get<IServiceBus>().Publish(@event);
+            Bus.Publish(@event);
         }
     }
 }

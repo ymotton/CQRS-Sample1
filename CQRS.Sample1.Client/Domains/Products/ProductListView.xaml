@@ -14,13 +14,22 @@
         <TextBlock Text="Products overview" FontSize="28"/>
         
         <GroupBox Grid.Row="1" Header="Products">
-            <ListBox x:Name="Products" SelectedItem="{Binding Path=SelectedProduct, Mode=TwoWay}">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding Name}" />
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <Button Grid.Row="0" x:Name="AddProduct" Content="Add" />
+
+                <ListBox Grid.Row="1" x:Name="Products" SelectedItem="{Binding Path=SelectedProduct, Mode=TwoWay}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Name}" />
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
         </GroupBox>
         
         <GroupBox Grid.Row="2" Header="Details">
