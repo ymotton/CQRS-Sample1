@@ -45,6 +45,7 @@
     <Compile Include="Domains\IModel.cs" />
     <Compile Include="Domains\Products\ProductDetailDto.cs" />
     <Compile Include="Domains\Products\ProductDto.cs" />
+    <Compile Include="Domains\Products\ProductListEventHandlers.cs" />
     <Compile Include="Domains\Products\ProductListModel.cs" />
     <Compile Include="IDispatcher.cs" />
     <Compile Include="NotifyPropertyChanged.cs" />

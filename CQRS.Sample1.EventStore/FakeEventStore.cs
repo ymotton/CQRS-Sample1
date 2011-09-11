@@ -8,9 +8,17 @@ namespace CQRS.Sample1.EventStore
     {
         private readonly IDictionary<string, EventDescriptionCollection> _eventStore;
 
-        public FakeEventStore(IServiceBus serviceBus) : base(serviceBus)
+        public FakeEventStore(IServiceBus serviceBus)
+            : base(serviceBus)
         {
             _eventStore = new Dictionary<string, EventDescriptionCollection>();
+        }
+
+        protected override IEnumerable<EventDescriptionCollection> GetAllEventDescriptionCollections()
+        {
+            IEnumerable<EventDescriptionCollection> collections = _eventStore.Values;
+
+            return collections;
         }
 
         protected override EventDescriptionCollection GetEventDescriptionCollection(Guid id)

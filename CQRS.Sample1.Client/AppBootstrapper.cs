@@ -2,7 +2,9 @@
 using System.Linq;
 using Caliburn.Micro;
 using CQRS.Sample1.Commands;
+using CQRS.Sample1.Events;
 using CQRS.Sample1.EventStore;
+using CQRS.Sample1.Process.Domains.Products;
 using CQRS.Sample1.Shared;
 using CQRS.Sample1.Process;
 
@@ -21,6 +23,11 @@ namespace CQRS.Sample1.Client
             var productListCommandHandlers = new ProductListCommandHandlers();
             serviceBus.SubscribeCommandHandler<ProductRenaming>(productListCommandHandlers);
             serviceBus.SubscribeCommandHandler<ProductCreation>(productListCommandHandlers);
+
+            // Event handlers
+            var productListEventHandlers = new ProductListEventHandlers();
+            serviceBus.SubscribeEventHandler<ProductRenamed>(productListEventHandlers);
+            serviceBus.SubscribeEventHandler<ProductCreated>(productListEventHandlers);
 
             DispatcherManager.Current = new WpfDispatcher();
         }

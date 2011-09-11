@@ -101,6 +101,7 @@
     <Compile Include="Command.cs" />
     <Compile Include="Event.cs" />
     <Compile Include="FakeServiceBus.cs" />
+    <Compile Include="IEventStore.cs" />
     <Compile Include="IHandle.cs" />
     <Compile Include="IHaveIdentifier.cs" />
     <Compile Include="IMessage.cs" />

@@ -10,7 +10,8 @@ namespace CQRS.Sample1.Benchmark
 {
     class Program: IHandle<ProductRenamed>, IHandle<ProductCreated>
     {
-        public int IterationsReceived;
+        private object _syncLock = new object();
+        private int _iterationsReceived;
 
         private static Program instance;
         static void Main(string[] args)
@@ -18,7 +19,7 @@ namespace CQRS.Sample1.Benchmark
             Setup();
 
             Benchmark(
-                250,
+                10000,
                 () => ServiceBus.Send(new ProductCreation(Guid.NewGuid(), "FooBar"))
             );
 
@@ -28,10 +29,11 @@ namespace CQRS.Sample1.Benchmark
         static void Setup()
         {
             var serviceBus = new MsmqServiceBus();
+            //var serviceBus = new FakeServiceBus();
             IoCManager.InjectInstance<IServiceBus>(serviceBus);
             IoCManager.InjectInstance<IRepository>(new RavenRepository());
-            IoCManager.InjectInstance<IEventStore>(new RavenEventStore(serviceBus));
-            //IoCManager.InjectInstance<IEventStore>(new FakeEventStore(serviceBus));
+            //IoCManager.InjectInstance<IEventStore>(new RavenEventStore(serviceBus));
+            IoCManager.InjectInstance<IEventStore>(new FakeEventStore(serviceBus));
 
             // Command handlers
             var productListCommandHandlers = new ProductListCommandHandlers();
@@ -56,7 +58,7 @@ namespace CQRS.Sample1.Benchmark
             float ratio = 1000f / ms;
             Console.WriteLine("{0} iterations sent to the queue after {1} ms, {2} commands/s...", iterations, ms, iterations * ratio);
 
-            while (instance.IterationsReceived < iterations)
+            while (instance._iterationsReceived < iterations)
             {
                 Thread.Sleep(1);
             }
@@ -71,7 +73,10 @@ namespace CQRS.Sample1.Benchmark
         }
         public void Handle(ProductCreated message)
         {
-            IterationsReceived++;
+            lock (_syncLock)
+            {
+                _iterationsReceived++;
+            } 
         }
     }
 }

@@ -30,7 +30,7 @@ namespace CQRS.Sample1.EventStore
             }
             public Event GetEvent()
             {
-                return (Event) SerializationHelper.Deserialize(Type.GetType(MessageType), Message);
+                return (Event)SerializationHelper.Deserialize(Type.GetType(MessageType), Message);
             }
         }
         protected class EventDescriptionCollection
@@ -82,6 +82,15 @@ namespace CQRS.Sample1.EventStore
         }
 
         #endregion
+
+        protected abstract IEnumerable<EventDescriptionCollection> GetAllEventDescriptionCollections();
+
+        public IEnumerable<Event> GetAllEvents()
+        {
+            return GetAllEventDescriptionCollections()
+                        .SelectMany(e => e.Items)
+                        .Select(ed => ed.GetEvent()).ToList();
+        }
 
         protected abstract EventDescriptionCollection GetEventDescriptionCollection(Guid id);
 
