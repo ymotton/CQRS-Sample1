@@ -19,7 +19,7 @@ namespace CQRS.Sample1.Benchmark
             Setup();
 
             Benchmark(
-                10000,
+                4000,
                 () => ServiceBus.Send(new ProductCreation(Guid.NewGuid(), "FooBar"))
             );
 

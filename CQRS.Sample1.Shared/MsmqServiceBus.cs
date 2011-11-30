@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Messaging;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace CQRS.Sample1.Shared
 {
@@ -9,19 +10,19 @@ namespace CQRS.Sample1.Shared
     {
         #region Properties
 
-        private static MessageQueue EventQueue
+        private MessageQueue EventQueue
         {
             get { return _eventQueue ?? (_eventQueue = GetMessageQueue(@".\Private$\EventQueue")); }
         }
-        private static MessageQueue _eventQueue;
+        private MessageQueue _eventQueue;
 
-        private static MessageQueue CommandQueue
+        private MessageQueue CommandQueue
         {
             get { return _commandQueue ?? (_commandQueue = GetMessageQueue(@".\Private$\CommandQueue")); }
         }
-        private static MessageQueue _commandQueue;
+        private MessageQueue _commandQueue;
 
-        private static readonly IDictionary<Type, IList<object>> _handlers = new Dictionary<Type, IList<object>>();
+        private readonly IDictionary<Type, IList<object>> _handlers = new Dictionary<Type, IList<object>>();
 
         #endregion
 
@@ -37,7 +38,7 @@ namespace CQRS.Sample1.Shared
         {
             GetHandlerList<T>().Add(handler);
         }
-        private static IList<object> GetHandlerList<T>()
+        private IList<object> GetHandlerList<T>()
         {
             IList<object> handlers;
             if (!_handlers.TryGetValue(typeof(T), out handlers))
@@ -86,8 +87,8 @@ namespace CQRS.Sample1.Shared
 
         #region Helpers
 
-        private static readonly object _syncLock = new object();
-        private static MessageQueue GetMessageQueue(string path)
+        private readonly object _syncLock = new object();
+        private MessageQueue GetMessageQueue(string path)
         {
             lock (_syncLock)
             {
@@ -105,12 +106,29 @@ namespace CQRS.Sample1.Shared
 
             return queue;
         }
-        private static void MessageReceiveCompleted(object sender, ReceiveCompletedEventArgs e)
+
+        private IDictionary<string, Type> _typeCache;
+        protected IDictionary<string, Type> TypeCache
+        {
+            get { return _typeCache ?? (_typeCache = new ConcurrentDictionary<string, Type>()); }
+        }
+        private Type GetAndCacheType(string typeName)
+        {
+            Type messageType;
+            if (!TypeCache.TryGetValue(typeName, out messageType))
+            {
+                messageType = Type.GetType(typeName);
+                TypeCache[typeName] = messageType;
+            }
+            return messageType;
+        }
+        private void MessageReceiveCompleted(object sender, ReceiveCompletedEventArgs e)
         {
             var queue = (MessageQueue)sender;
 
             System.Messaging.Message message = queue.EndReceive(e.AsyncResult);
-            Type messageType = Type.GetType(message.Label);
+
+            Type messageType = GetAndCacheType(message.Label);
 
             foreach (var handler in GetMatchingHandlersOrThrow(messageType))
             {
@@ -119,7 +137,7 @@ namespace CQRS.Sample1.Shared
 
             queue.BeginReceive();
         }
-        private static IEnumerable<object> GetMatchingHandlersOrThrow(Type messageType)
+        private IEnumerable<object> GetMatchingHandlersOrThrow(Type messageType)
         {
             IList<object> handlers;
             if (!_handlers.TryGetValue(messageType, out handlers) || handlers.Count == 0)
@@ -129,7 +147,7 @@ namespace CQRS.Sample1.Shared
 
             return handlers;
         }
-        private static void InvokeHandle(Type messageType, object handler, object message)
+        private void InvokeHandle(Type messageType, object handler, object message)
         {
             var method = typeof(IHandle<>).MakeGenericType(messageType).GetMethod("Handle");
             method.Invoke(handler, new[] { message });
