@@ -28,12 +28,13 @@ namespace CQRS.Sample1.Benchmark
 
         static void Setup()
         {
-            var serviceBus = new MsmqServiceBus();
-            //var serviceBus = new FakeServiceBus();
+            IServiceBus serviceBus = new MsmqServiceBus();
+            //IServiceBus serviceBus = new FakeServiceBus();
+            IRepository repository = new RavenRepository();
+
             IoCManager.InjectInstance<IServiceBus>(serviceBus);
-            IoCManager.InjectInstance<IRepository>(new RavenRepository());
-            //IoCManager.InjectInstance<IEventStore>(new RavenEventStore(serviceBus));
-            IoCManager.InjectInstance<IEventStore>(new FakeEventStore(serviceBus));
+            IoCManager.InjectInstance<IEventStore>(new RavenEventStore(repository, serviceBus));
+            //IoCManager.InjectInstance<IEventStore>(new FakeEventStore(serviceBus));
 
             // Command handlers
             var productListCommandHandlers = new ProductListCommandHandlers();
@@ -57,6 +58,12 @@ namespace CQRS.Sample1.Benchmark
             long ms = stopwatch.ElapsedMilliseconds;
             float ratio = 1000f / ms;
             Console.WriteLine("{0} iterations sent to the queue after {1} ms, {2} commands/s...", iterations, ms, iterations * ratio);
+
+            while (instance._iterationsReceived < 1)
+            {
+                Thread.Sleep(1);
+            }
+            Console.WriteLine("first result received after {0} ms", stopwatch.ElapsedMilliseconds);
 
             while (instance._iterationsReceived < iterations)
             {

@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Linq;
 using Caliburn.Micro;
-using CQRS.Sample1.Commands;
-using CQRS.Sample1.Events;
 using CQRS.Sample1.EventStore;
-using CQRS.Sample1.Process.Domains.Products;
-using CQRS.Sample1.Shared;
 using CQRS.Sample1.Process;
+using CQRS.Sample1.Process.Domains;
+using CQRS.Sample1.Shared;
 
 namespace CQRS.Sample1.Client
 {
@@ -14,20 +11,15 @@ namespace CQRS.Sample1.Client
     {
         protected override void Configure()
         {
-            var serviceBus = new FakeServiceBus();
+            IServiceBus serviceBus = new MsmqServiceBus();
+            //IServiceBus serviceBus = new FakeServiceBus();
+            IRepository repository = new RavenRepository();
+
             IoCManager.InjectInstance<IServiceBus>(serviceBus);
-            IoCManager.InjectInstance<IRepository>(new RavenRepository());
-            IoCManager.InjectInstance<IEventStore>(new RavenEventStore(serviceBus));
+            IoCManager.InjectInstance<IEventStore>(new RavenEventStore(repository, serviceBus));
+            //IoCManager.InjectInstance<IEventStore>(new FakeEventStore(serviceBus));
 
-            // Command handlers
-            var productListCommandHandlers = new ProductListCommandHandlers();
-            serviceBus.SubscribeCommandHandler<ProductRenaming>(productListCommandHandlers);
-            serviceBus.SubscribeCommandHandler<ProductCreation>(productListCommandHandlers);
-
-            // Event handlers
-            var productListEventHandlers = new ProductListEventHandlers();
-            serviceBus.SubscribeEventHandler<ProductRenamed>(productListEventHandlers);
-            serviceBus.SubscribeEventHandler<ProductCreated>(productListEventHandlers);
+            ProcessHandler.RegisterHandlers(new ReadOnlyStore(repository), serviceBus);
 
             DispatcherManager.Current = new WpfDispatcher();
         }
@@ -38,19 +30,17 @@ namespace CQRS.Sample1.Client
             {
                 return new WindowManager();
             }
-            Type baseType = service.BaseType;
-            if (baseType.IsGenericType && baseType.GetGenericTypeDefinition() == typeof(ExtendedScreen<>))
+            
+            if (service == typeof(ShellViewModel))
             {
-                Type modelType = baseType.GetGenericArguments().First();
-                object instance = ReadOnlyStore.Get(modelType);
-                
-                if (instance == null)
-                {
-                    instance = base.GetInstance(modelType, key);
-                    ReadOnlyStore.Put(instance);
-                }
+                return new ShellViewModel();
+            }
 
-                return Activator.CreateInstance(service, instance);
+            object instance = ProcessHandler.GetProcessInstance(service);
+
+            if (instance != null)
+            {
+                return instance;
             }
 
             return base.GetInstance(service, key);

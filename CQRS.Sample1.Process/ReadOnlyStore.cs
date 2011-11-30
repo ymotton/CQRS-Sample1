@@ -3,34 +3,40 @@ using CQRS.Sample1.Shared;
 
 namespace CQRS.Sample1.Process
 {
-    public static class ReadOnlyStore
+    public class ReadOnlyStore : IReadOnlyStore
     {
-        private static IRepository Repository
-        {
-            get
-            {
-                if (_repository == null)
-                {
-                    _repository = IoCManager.Get<IRepository>();
-                }
-                return _repository;
-            }
-        }
-        private static IRepository _repository;
+        #region Fields
+        
+        private readonly IRepository _repository;
 
-        public static object Get(Type instanceType)
+        #endregion
+
+        #region Ctor
+
+        public ReadOnlyStore(IRepository repository)
         {
-            return Repository.Get<object>(instanceType.FullName);
+            _repository = repository;
         }
 
-        public static T Get<T>()
+        #endregion
+
+        #region IReadOnlyStore Members
+
+        public object Get(Type instanceType)
         {
-            return Repository.Get<T>(typeof(T).FullName);
+            return _repository.Get<object>(instanceType.FullName);
         }
 
-        public static void Put(object instance)
+        public T Get<T>()
         {
-            Repository.Put(instance);
+            return _repository.Get<T>(typeof(T).FullName);
         }
+
+        public void Put(object instance)
+        {
+            _repository.Put(instance);
+        }
+
+        #endregion
     }
 }

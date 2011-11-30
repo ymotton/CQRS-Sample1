@@ -107,7 +107,13 @@ namespace CQRS.Sample1.EventStore
 
         public void SaveEvents(Guid id, IEnumerable<Event> events, int expectedVersion)
         {
-            var collection = GetEventDescriptionCollection(id);
+            EventDescriptionCollection collection = GetEventDescriptionCollection(id);
+
+            // PERHAPS: If it's an entirely new event stream, no use in querying the database
+            //if (events.First().Version != -1)
+            //{
+            //    collection = GetEventDescriptionCollection(id);
+            //}
 
             if (collection == null)
             {

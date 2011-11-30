@@ -94,7 +94,6 @@
     </Compile>
     <Compile Include="DialogViewModel.cs" />
     <Compile Include="ExtendedScreen.cs" />
-    <Compile Include="IInitializesViewModel.cs" />
     <Compile Include="ShellViewModel.cs" />
     <ApplicationDefinition Include="App.xaml">
       <SubType>Designer</SubType>

@@ -42,12 +42,17 @@
   <ItemGroup>
     <Compile Include="DispatchedCollection.cs" />
     <Compile Include="DispatcherManager.cs" />
+    <Compile Include="Domains\EventHandlerBase.cs" />
+    <Compile Include="Domains\IEventHandler.cs" />
+    <Compile Include="Domains\IHasModel.cs" />
     <Compile Include="Domains\IModel.cs" />
+    <Compile Include="Domains\ProcessHandler.cs" />
     <Compile Include="Domains\Products\ProductDetailDto.cs" />
     <Compile Include="Domains\Products\ProductDto.cs" />
     <Compile Include="Domains\Products\ProductListEventHandlers.cs" />
     <Compile Include="Domains\Products\ProductListModel.cs" />
     <Compile Include="IDispatcher.cs" />
+    <Compile Include="IReadOnlyStore.cs" />
     <Compile Include="NotifyPropertyChanged.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ReadOnlyStore.cs" />

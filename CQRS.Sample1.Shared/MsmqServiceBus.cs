@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Messaging;
-using System.Threading;
+using System.Threading.Tasks;
 
 namespace CQRS.Sample1.Shared
 {
@@ -12,76 +11,13 @@ namespace CQRS.Sample1.Shared
 
         private static MessageQueue EventQueue
         {
-            get
-            {
-                if (_eventQueue == null)
-                {
-                    _eventQueue = GetOrCreateMessageQueue(@".\Private$\EventQueue");
-                    _eventQueue.Formatter = new BinaryMessageFormatter();
-                    _eventQueue.ReceiveCompleted +=
-                        (o, e) =>
-                        {
-                            try
-                            {
-                                System.Messaging.Message message = _eventQueue.EndReceive(e.AsyncResult);
-
-                                Type eventType = Type.GetType(message.Label);
-                                Event @event = (Event)message.Body;
-
-                                foreach (var handler in GetMatchingHandlersOrThrow(eventType))
-                                {
-                                    InvokeHandle(eventType, handler, @event);
-                                }
-                            }
-                            catch (MessageQueueException)
-                            {
-                                throw;
-                            }
-
-                            _eventQueue.BeginReceive();
-                        };
-                    _eventQueue.BeginReceive();
-                }
-
-                return _eventQueue;
-            }
+            get { return _eventQueue ?? (_eventQueue = GetMessageQueue(@".\Private$\EventQueue")); }
         }
         private static MessageQueue _eventQueue;
 
         private static MessageQueue CommandQueue
         {
-            get
-            {
-                if (_commandQueue == null)
-                {
-                    _commandQueue = GetOrCreateMessageQueue(@".\Private$\CommandQueue");
-                    _commandQueue.Formatter = new BinaryMessageFormatter();
-                    _commandQueue.ReceiveCompleted +=
-                        (o, e) =>
-                        { 
-                            try
-                            {
-                                System.Messaging.Message message = _commandQueue.EndReceive(e.AsyncResult);
-
-                                Type commandType = Type.GetType(message.Label);
-                                Command command = (Command)message.Body;
-
-                                var handler = GetMatchingHandlersOrThrow(commandType).First();
-                                InvokeHandle(commandType, handler, command);
-                            }
-                            catch (MessageQueueException)
-                            {
-                                throw;
-                            }
-
-                            _commandQueue.BeginReceive();
-                        };
-                }
-
-                _commandQueue.BeginReceive();
-
-                return _commandQueue;
-            }
+            get { return _commandQueue ?? (_commandQueue = GetMessageQueue(@".\Private$\CommandQueue")); }
         }
         private static MessageQueue _commandQueue;
 
@@ -89,19 +25,7 @@ namespace CQRS.Sample1.Shared
 
         #endregion
 
-        private static readonly object _syncLock = new object();
-        private static MessageQueue GetOrCreateMessageQueue(string path)
-        {
-            lock (_syncLock)
-            {
-                if (!MessageQueue.Exists(path))
-                {
-                    return MessageQueue.Create(path);
-                }
-            }
-
-            return new MessageQueue(path);
-        }
+        #region Subscribe Handlers
 
         public void SubscribeCommandHandler<T>(IHandle<T> handler) where T : Command
         {
@@ -125,6 +49,10 @@ namespace CQRS.Sample1.Shared
             return handlers;
         }
 
+        #endregion
+
+        #region Send Command and Publish Events
+
         public void Send<T>(T command) where T : Command
         {
             var message =
@@ -132,10 +60,11 @@ namespace CQRS.Sample1.Shared
                 {
                     Formatter = new BinaryMessageFormatter(),
                     Body = command,
-                    Label = command.GetType().AssemblyQualifiedName
+                    Label = command.GetType().AssemblyQualifiedName,
+                    Recoverable = true
                 };
 
-            // Perhaps execute the command asynchronously
+            // Only return when we get the ack that the message has been sent to the queue
             CommandQueue.Send(message);
         }
         public void Publish<T>(T @event) where T : Event
@@ -145,19 +74,50 @@ namespace CQRS.Sample1.Shared
                 {
                     Formatter = new BinaryMessageFormatter(),
                     Body = @event,
-                    Label = @event.GetType().AssemblyQualifiedName
+                    Label = @event.GetType().AssemblyQualifiedName,
+                    Recoverable = true
                 };
             
-            ThreadPool.QueueUserWorkItem(s => EventQueue.Send(message));
+            // Only return when we get the ack that the message has been sent to the queue
+            EventQueue.Send(message);
         }
-        private static void InvokeHandle(Type messageType, object handler, object message)
+
+        #endregion
+
+        #region Helpers
+
+        private static readonly object _syncLock = new object();
+        private static MessageQueue GetMessageQueue(string path)
         {
-            ThreadPool.QueueUserWorkItem(
-                (state) =>
+            lock (_syncLock)
+            {
+                if (!MessageQueue.Exists(path))
                 {
-                    var method = typeof(IHandle<>).MakeGenericType(messageType).GetMethod("Handle");
-                    method.Invoke(handler, new[] { message });
-                });
+                    return MessageQueue.Create(path);
+                }
+            }
+
+            MessageQueue queue = new MessageQueue(path);
+
+            queue.Formatter = new BinaryMessageFormatter();
+            queue.ReceiveCompleted += MessageReceiveCompleted;
+            queue.BeginReceive();
+
+            return queue;
+        }
+        private static void MessageReceiveCompleted(object sender, ReceiveCompletedEventArgs e)
+        {
+            var queue = (MessageQueue)sender;
+
+            System.Messaging.Message message = queue.EndReceive(e.AsyncResult);
+            Type messageType = Type.GetType(message.Label);
+
+            foreach (var handler in GetMatchingHandlersOrThrow(messageType))
+            {
+                InvokeHandle(messageType, handler, message.Body);
+            }
+
+            queue.BeginReceive();
         }
         private static IEnumerable<object> GetMatchingHandlersOrThrow(Type messageType)
         {
@@ -169,5 +129,12 @@ namespace CQRS.Sample1.Shared
 
             return handlers;
         }
+        private static void InvokeHandle(Type messageType, object handler, object message)
+        {
+            var method = typeof(IHandle<>).MakeGenericType(messageType).GetMethod("Handle");
+            method.Invoke(handler, new[] { message });
+        }
+
+        #endregion
     }
 }

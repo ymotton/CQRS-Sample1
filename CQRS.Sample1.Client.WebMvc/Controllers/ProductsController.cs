@@ -2,28 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Web.Mvc;
-using CQRS.Sample1.Commands;
-using CQRS.Sample1.Process;
 using CQRS.Sample1.Process.Domains.Products;
 using CQRS.Sample1.Shared;
 
 namespace CQRS.Sample1.Client.WebMvc.Controllers
 {
-    public class ProductsController : Controller
+    public class ProductsController : ControllerBase<ProductListModel>
     {
-        private readonly ProductListModel _productListModel;
-        public ProductsController()
-        {
-            Type modelType = typeof(ProductListModel);
-
-            _productListModel = (ProductListModel)ReadOnlyStore.Get(modelType);
-            if (_productListModel == null)
-            {
-                _productListModel = (ProductListModel)Activator.CreateInstance(modelType, null);
-                ReadOnlyStore.Put(_productListModel);
-            }
-        }
-
         public ActionResult Index()
         {
             return View();
@@ -32,7 +17,7 @@ namespace CQRS.Sample1.Client.WebMvc.Controllers
         public JsonResult GetProducts()
         {
             return JsonGridResult(
-                _productListModel.Products,
+                Model.Products,
                 p =>
                     new[]
                     {
@@ -44,7 +29,7 @@ namespace CQRS.Sample1.Client.WebMvc.Controllers
         public JsonResult GetProductDetails(Guid id)
         {
             return JsonGridResult(
-                _productListModel.ProductDetails.Where(p => p.Id == id),
+                Model.ProductDetails.Where(p => p.Id == id),
                 p =>
                     new[]
                     {
@@ -54,9 +39,20 @@ namespace CQRS.Sample1.Client.WebMvc.Controllers
                     });
         }
 
-        public void AddProduct()
+        public ActionResult AddProduct()
         {
-            ServiceBus.Send(new ProductCreation(Guid.NewGuid(), "FooBar"));
+            TempData["Foo"] = "bar";
+            return View(new Models.ProductCreation() { Test = "Test", Guids = new List<Guid> { Guid.NewGuid() }});
+        }
+
+        [HttpPost]
+        public ActionResult AddProduct(Models.ProductCreation productCreation)
+        {
+            Console.WriteLine(TempData["Foo"]);
+            
+            ServiceBus.Send(new Commands.ProductCreation(Guid.NewGuid(), productCreation.Name));
+
+            return RedirectToAction("Index");
         }
 
         private JsonResult JsonGridResult<T>(IEnumerable<T> items, Func<T, object[]> transform)

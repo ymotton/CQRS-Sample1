@@ -1,5 +1,4 @@
-﻿using CQRS.Sample1.EventStore;
-using CQRS.Sample1.Shared;
+﻿using CQRS.Sample1.Shared;
 
 namespace CQRS.Sample1.Commands
 {

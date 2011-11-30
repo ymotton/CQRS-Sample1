@@ -1,28 +1,22 @@
 ﻿using System;
 using System.Web.Mvc;
 using System.Web.Routing;
-using CQRS.Sample1.Process;
+using CQRS.Sample1.Process.Domains;
 
 namespace CQRS.Sample1.Client.WebMvc
 {
-    public class CustomControllerFactory : IControllerFactory
+    public class CustomControllerFactory : DefaultControllerFactory
     {
-        public IController CreateController(RequestContext requestContext, string controllerName)
+        protected override IController GetControllerInstance(RequestContext requestContext, Type controllerType)
         {
-            Type modelType = null;
+            object instance = ProcessHandler.GetProcessInstance(controllerType);
 
-            object instance = ReadOnlyStore.Get(modelType);
-            if (instance == null)
+            if (instance != null)
             {
-                instance = Activator.CreateInstance(modelType, null);
-                ReadOnlyStore.Put(instance);
+                return (IController) instance;
             }
 
-            return null;
-        }
-
-        public void ReleaseController(IController controller)
-        {
+            return base.GetControllerInstance(requestContext, controllerType);
         }
     }
 }

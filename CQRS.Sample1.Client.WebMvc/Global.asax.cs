@@ -1,10 +1,9 @@
 ﻿using System.Web.Mvc;
 using System.Web.Routing;
-using CQRS.Sample1.Commands;
-using CQRS.Sample1.Events;
 using CQRS.Sample1.EventStore;
+using CQRS.Sample1.Process;
 using CQRS.Sample1.Shared;
-using CQRS.Sample1.Process.Domains.Products;
+using CQRS.Sample1.Process.Domains;
 
 namespace CQRS.Sample1.Client.WebMvc
 {
@@ -13,13 +12,13 @@ namespace CQRS.Sample1.Client.WebMvc
         public static void RegisterRoutes(RouteCollection routes)
         {
             routes.IgnoreRoute("{resource}.axd/{*pathInfo}");
+            routes.IgnoreRoute("favicon.ico");
 
             routes.MapRoute(
                 "Default", // Route name
                 "{controller}/{action}/{id}", // URL with parameters
                 new { controller = "Products", action = "Index", id = UrlParameter.Optional } // Parameter defaults
             );
-
         }
 
         protected void Application_Start()
@@ -28,23 +27,17 @@ namespace CQRS.Sample1.Client.WebMvc
 
             RegisterRoutes(RouteTable.Routes);
 
-            // ControllerBuilder.Current.SetControllerFactory(new CustomControllerFactory());
+            IServiceBus serviceBus = new MsmqServiceBus();
+            //IServiceBus serviceBus = new FakeServiceBus();
+            IRepository repository = new RavenRepository();
 
-            var serviceBus = new FakeServiceBus();
             IoCManager.InjectInstance<IServiceBus>(serviceBus);
-            IoCManager.InjectInstance<IRepository>(new RavenRepository());
-            IoCManager.InjectInstance<IEventStore>(new RavenEventStore(serviceBus));
+            IoCManager.InjectInstance<IEventStore>(new RavenEventStore(repository, serviceBus));
+            //IoCManager.InjectInstance<IEventStore>(new FakeEventStore(serviceBus));
 
-            // Command handlers
-            var productListCommandHandlers = new ProductListCommandHandlers();
-            serviceBus.SubscribeCommandHandler<ProductRenaming>(productListCommandHandlers);
-            serviceBus.SubscribeCommandHandler<ProductCreation>(productListCommandHandlers);
+            ProcessHandler.RegisterHandlers(new ReadOnlyStore(repository), serviceBus); 
 
-            // Event handlers
-            var productListEventHandlers = new ProductListEventHandlers();
-            serviceBus.SubscribeEventHandler<ProductRenamed>(productListEventHandlers);
-            serviceBus.SubscribeEventHandler<ProductCreated>(productListEventHandlers);
-
+            ControllerBuilder.Current.SetControllerFactory(new CustomControllerFactory());
         }
     }
 }

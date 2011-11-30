@@ -35,7 +35,12 @@ namespace CQRS.Sample1.Shared
         {
             var commandType = command.GetType();
             var handler = GetMatchingHandlersOrThrow(commandType).First();
-            InvokeHandle(commandType, handler, command);
+
+            ThreadPool.QueueUserWorkItem(
+                (state) =>
+                {
+                    InvokeHandle(commandType, handler, command);
+                });
         }
         public void Publish<T>(T @event) where T : Event
         {
@@ -48,8 +53,6 @@ namespace CQRS.Sample1.Shared
                 ThreadPool.QueueUserWorkItem(
                     (state) =>
                     {
-                        // Fake delay to see what's going on
-                        // Thread.Sleep(5000);
                         InvokeHandle(eventType, capturedHandler, @event);
                     });
             }

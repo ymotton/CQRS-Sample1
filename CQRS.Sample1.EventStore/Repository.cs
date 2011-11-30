@@ -1,7 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using CQRS.Sample1.Domain;
 using CQRS.Sample1.Shared;
-using System.Collections.Generic;
 
 namespace CQRS.Sample1.EventStore
 {

@@ -9,20 +9,19 @@ using Newtonsoft.Json;
 
 namespace CQRS.Sample1.Client.Domains.Products
 {
-    public class ProductListViewModel : ExtendedScreen<ProductListModel>, IHandle<ProductRenamed>, IHandle<ProductCreated>
+    public class ProductListViewModel : ExtendedScreen<ProductListModel>, IHandle<ProductRenamed>
     {
         #region Properties
 
-        private readonly ProductListModel _productListModel;
         public DispatchedCollection<ProductDto> Products
         {
-            get { return _productListModel.Products; }
-            set { _productListModel.Products = value; }
+            get { return Model.Products; }
+            set { Model.Products = value; }
         }
         public DispatchedCollection<ProductDetailDto> ProductDetails
         {
-            get { return _productListModel.ProductDetails; }
-            set { _productListModel.ProductDetails = value; }
+            get { return Model.ProductDetails; }
+            set { Model.ProductDetails = value; }
         }
 
         public ProductDto SelectedProduct
@@ -61,38 +60,14 @@ namespace CQRS.Sample1.Client.Domains.Products
 
         #endregion 
 
-        #region Ctors
-
-        public ProductListViewModel(ProductListModel model) : base(model)
-        {
-            _productListModel = model;
-
-            var serviceBus = IoCManager.Get<IServiceBus>();
-            serviceBus.SubscribeEventHandler<ProductRenamed>(this);
-            serviceBus.SubscribeEventHandler<ProductCreated>(this);
-        }
-
-        #endregion
-
         public void Handle(ProductRenamed message)
         {
-            Products.First(p => p.Id == message.Id).Name = message.NewName;
-            
             if (SelectedProductDetail != null && SelectedProductDetail.Id == message.Id)
             {
                 SelectedProductDetail.Name = message.NewName;
                 SelectedProductDetail.Version = message.Version;
                 NotifyOfPropertyChange(() => SelectedProductName);
             }
-
-            ReadOnlyStore.Put(_productListModel);
-        }
-        public void Handle(ProductCreated message)
-        {
-            Products.Add(new ProductDto(message.Id, message.Name));
-            ProductDetails.Add(new ProductDetailDto(message.Id, message.Name, 0, message.Version));
-
-            ReadOnlyStore.Put(_productListModel);
         }
         public void AddProduct()
         {

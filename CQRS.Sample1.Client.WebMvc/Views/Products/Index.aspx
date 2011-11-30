@@ -45,25 +45,4 @@
 
     <%= Html.ActionLink("Add Product", "AddProduct") %>
 
-    <% using (Html.BeginForm()) {%>
-        <fieldset>
-            <legend>Fields</legend>
-            <p>
-                <label for="Id">Id:</label>
-                <%= Html.TextBox("Id") %>
-            </p>
-            <p>
-                <label for="Name">Name:</label>
-                <%= Html.TextBox("Name") %>
-            </p>
-            <p>
-                <label for="StockCount">StockCount:</label>
-                <%= Html.TextBox("StockCount")%>
-            </p>
-            <p>
-                <input type="submit" value="Create" />
-            </p>
-        </fieldset>
-    <% } %>
-
 </asp:Content>

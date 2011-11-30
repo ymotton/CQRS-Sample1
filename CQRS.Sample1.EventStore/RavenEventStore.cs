@@ -1,32 +1,38 @@
 ﻿using System;
-using CQRS.Sample1.Shared;
 using System.Collections.Generic;
+using CQRS.Sample1.Shared;
 
 namespace CQRS.Sample1.EventStore
 {
     public class RavenEventStore : EventStoreBase
     {
-        public RavenEventStore(IServiceBus serviceBus) : base(serviceBus) { }
+        #region Fields
+
+        private readonly IRepository _repository;
+
+        #endregion
+
+        public RavenEventStore(IRepository repository, IServiceBus serviceBus) : base(serviceBus)
+        {
+            _repository = repository;
+        }
 
         protected override IEnumerable<EventDescriptionCollection> GetAllEventDescriptionCollections()
         {
-            var repository = IoCManager.Get<IRepository>();
-
-            return null; //repository.Get<EventDescriptionCollection>();
+            return _repository.Get<EventDescriptionCollection>();
+            //var eventDescriptionCollections = new List<EventDescriptionCollection>();
+            //_repository.PagedGet<EventDescriptionCollection>(eventDescriptionCollections.AddRange);
+            //return eventDescriptionCollections;
         }
 
         protected override EventDescriptionCollection GetEventDescriptionCollection(Guid id)
         {
-            var repository = IoCManager.Get<IRepository>();
-
-            return repository.Get<EventDescriptionCollection>(id.ToString());
+            return _repository.Get<EventDescriptionCollection>(id.ToString());
         }
 
         protected override void PersistEventDescriptionCollection(EventDescriptionCollection collection)
         {
-            var repository = IoCManager.Get<IRepository>();
-
-            repository.Put(collection);
+            _repository.Put(collection);
         }
     }
 }
